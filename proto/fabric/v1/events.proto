@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package algoryn.fabric.v1;
+
+option go_package = "algoryn.io/fabric/gen/go/fabric/v1;fabricv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// EventType classifies inter-tool fabric events.
+// String wire values used in the legacy Go API are noted in comments.
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  // run.completed — Pulse finished a load test.
+  EVENT_TYPE_RUN_COMPLETED = 1;
+  // service.registered — Deploy registered a backend; Relay may consume.
+  EVENT_TYPE_SERVICE_REGISTERED = 2;
+  // service.deregistered — Deploy removed a backend.
+  EVENT_TYPE_SERVICE_DEREGISTERED = 3;
+  // threshold.violated — Pulse or Relay detected an SLO breach; Beacon may alert.
+  EVENT_TYPE_THRESHOLD_VIOLATED = 4;
+  // alert.fired — Beacon raised an alert (forward-looking contract).
+  EVENT_TYPE_ALERT_FIRED = 5;
+}
+
+// Event is the canonical envelope for cross-tool notifications in Algoryn Fabric.
+message Event {
+  string id = 1;
+  EventType type = 2;
+  // Emitting tool (use metrics.Source* identifiers where applicable).
+  string source = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  oneof payload {
+    RunCompletedPayload run_completed = 10;
+    ServiceRegisteredPayload service_registered = 11;
+    ServiceDeregisteredPayload service_deregistered = 12;
+    ThresholdViolatedPayload threshold_violated = 13;
+    AlertFiredPayload alert_fired = 14;
+  }
+}
+
+// Compact pulse run summary for dashboards / quick filtering.
+message RunSummary {
+  int64 total = 1;
+  int64 failed = 2;
+  double rps = 3;
+  double error_rate = 4;
+  // P99 latency in milliseconds (legacy RunSummary field).
+  double p99_ms = 5;
+}
+
+// Payload for EVENT_TYPE_RUN_COMPLETED.
+message RunCompletedPayload {
+  string run_id = 1;
+  string service = 2;
+  bool passed = 3;
+  google.protobuf.Duration duration = 4;
+  RunSummary summary = 5;
+}
+
+// Payload for EVENT_TYPE_SERVICE_REGISTERED.
+message ServiceRegisteredPayload {
+  string name = 1;
+  string address = 2;
+  map<string, string> tags = 3;
+}
+
+// Payload for EVENT_TYPE_SERVICE_Deregistered.
+message ServiceDeregisteredPayload {
+  string name = 1;
+  string address = 2;
+  map<string, string> tags = 3;
+}
+
+// Payload for EVENT_TYPE_THRESHOLD_VIOLATED.
+message ThresholdViolatedPayload {
+  string service = 1;
+  string source = 2;
+  string description = 3;
+  double actual = 4;
+  double limit = 5;
+}
+
+// Payload for EVENT_TYPE_ALERT_FIRED (Beacon and future alerting producers).
+message AlertFiredPayload {
+  // Unique id for this firing instance.
+  string alert_id = 1;
+  // Logical rule / policy identifier in Beacon.
+  string rule_id = 2;
+  // Display name for UIs and notifications.
+  string rule_name = 3;
+  // Severity bucket (e.g. critical, warning, info).
+  string severity = 4;
+  // Affected service or scope.
+  string service = 5;
+  // One-line summary for channels (Slack, email, etc.).
+  string summary = 6;
+  google.protobuf.Timestamp fired_at = 7;
+  map<string, string> labels = 8;
+  // Optional pointer to another fabric Event id (e.g. linked violation).
+  string correlation_event_id = 9;
+}

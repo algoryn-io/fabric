@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package algoryn.fabric.v1;
+
+option go_package = "algoryn.io/fabric/gen/go/fabric/v1;fabricv1";
+
+import "google/protobuf/duration.proto";
+
+// LatencyStats holds aggregate latency measurements for a set of requests.
+// Matches the legacy metrics.LatencyStats contract (Pulse, Relay, Beacon).
+message LatencyStats {
+  // Minimum observed latency in the window.
+  google.protobuf.Duration min = 1;
+  // Arithmetic mean latency.
+  google.protobuf.Duration mean = 2;
+  // 50th percentile latency estimate.
+  google.protobuf.Duration p50 = 3;
+  // 90th percentile latency estimate.
+  google.protobuf.Duration p90 = 4;
+  // 95th percentile latency estimate.
+  google.protobuf.Duration p95 = 5;
+  // 99th percentile latency estimate.
+  google.protobuf.Duration p99 = 6;
+  // Maximum observed latency in the window.
+  google.protobuf.Duration max = 7;
+}

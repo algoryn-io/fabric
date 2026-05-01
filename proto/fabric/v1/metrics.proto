@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package algoryn.fabric.v1;
+
+option go_package = "algoryn.io/fabric/gen/go/fabric/v1;fabricv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "fabric/v1/types_common.proto";
+
+// MetricSnapshot is one aggregated observation window of service metrics.
+// Produced by Pulse (load tests) and Relay (live traffic); consumed by Beacon.
+message MetricSnapshot {
+  // Source tool identifier (e.g. "pulse", "relay").
+  string source = 1;
+  // Logical service name under observation.
+  string service = 2;
+  // Start of the observation window.
+  google.protobuf.Timestamp timestamp = 3;
+  // Length of the observation window.
+  google.protobuf.Duration window = 4;
+  // Total request count in the window.
+  int64 total = 5;
+  // Count of failed requests (errors or bad status, per producer rules).
+  int64 failed = 6;
+  // Average requests per second over the window.
+  double rps = 7;
+  // Aggregate latency distribution.
+  LatencyStats latency = 8;
+  // HTTP status code histogram (code -> count).
+  map<int32, int64> status_codes = 9;
+  // Normalized error category counts (e.g. "http_status_error").
+  map<string, int64> errors = 10;
+  // Arbitrary dimensions (phase, route, etc.).
+  map<string, string> labels = 11;
+}
+
+// ThresholdResult records pass/fail for a single SLO-style check.
+message ThresholdResult {
+  // Human-readable threshold description (e.g. "error_rate < 0.01").
+  string description = 1;
+  // True when the observed data satisfied the threshold.
+  bool pass = 2;
+}
+
+// RunEvent is the full outcome of one Pulse load-test run (hook / export shape).
+message RunEvent {
+  string id = 1;
+  // Always "pulse" for native Pulse runs.
+  string source = 2;
+  google.protobuf.Timestamp started_at = 3;
+  google.protobuf.Timestamp ended_at = 4;
+  MetricSnapshot snapshot = 5;
+  repeated ThresholdResult thresholds = 6;
+  bool passed = 7;
+}
